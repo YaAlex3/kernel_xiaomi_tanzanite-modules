@@ -547,9 +547,6 @@ mgk_64_kleaf_device_modules_srcs = [
     "//kernel_device_modules-{}/drivers/misc/mediatek/performance/fpsgo_v8:ddk_srcs".format(kernel_version),
     "//kernel_device_modules-{}/drivers/misc/mediatek/performance/fpsgo_v3:ddk_srcs".format(kernel_version),
     "//kernel_device_modules-{}/drivers/input/touchscreen/lct_tp:ddk_srcs".format(kernel_version),
-# MIUI ADD: Performance_TurboSched
-    "//kernel_device_modules-{}/drivers/mihw:srcs".format(kernel_version),
-# END: Performance_TurboSched
     "//kernel_device_modules-{}/drivers/misc/xiaomi/iorap2:srcs".format(kernel_version),
 ]
 
@@ -804,9 +801,6 @@ mgk_64_kleaf_device_modules_kconfigs = [
     "//kernel_device_modules-{}/drivers/input/touchscreen/lct_tp:ddk_kconfigs".format(kernel_version),
     "//kernel_device_modules-{}/drivers/input/touchscreen/FT3519T:ddk_kconfigs".format(kernel_version),
     "//kernel_device_modules-{}/drivers/input/touchscreen/GT9916:ddk_kconfigs".format(kernel_version),
-# MIUI ADD: Performance_TurboSched
-    "//kernel_device_modules-{}/drivers/mihw:ddk_kconfigs".format(kernel_version),
-# END: Performance_TurboSched
     "//kernel_device_modules-{}/drivers/misc/xiaomi/miev:ddk_kconfigs".format(kernel_version),
     "//kernel_device_modules-{}/drivers/misc/xiaomi/iorap2:ddk_kconfigs".format(kernel_version),
 ]
@@ -1399,10 +1393,6 @@ mgk_64_kleaf_device_modules = [
     "//kernel_device_modules-{}/drivers/misc/mediatek/zram:zram".format(kernel_version),
     "//kernel_device_modules-{}/drivers/staging/binder_prio:binder_prio".format(kernel_version),
     "//kernel_device_modules-{}/drivers/staging/mi_wmark:mi_wmark".format(kernel_version),
-# MIUI ADD: Performance_TurboSched
-    "//kernel_device_modules-{}/drivers/mihw:mi_sched".format(kernel_version),
-    "//kernel_device_modules-{}/drivers/mihw:metis".format(kernel_version),
-# END Performance_TurboSched
     "//kernel_device_modules-{}/drivers/misc/xiaomi/miev:miev".format(kernel_version),
     "//kernel_device_modules-{}/drivers/misc/xiaomi/iorap2:iorap2".format(kernel_version),
 ]

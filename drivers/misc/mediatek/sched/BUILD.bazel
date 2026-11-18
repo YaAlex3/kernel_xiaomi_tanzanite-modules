@@ -50,9 +50,8 @@ define_mgk_ddk_ko(
     hdrs = glob(["**/*.h"]),
 	ko_deps = [
 		"//kernel_device_modules-{}/drivers/cpufreq:mediatek-cpufreq-hw".format(kernel_version),
-        "//kernel_device_modules-{}/drivers/thermal/mediatek:thermal_interface".format(kernel_version),
+    	        "//kernel_device_modules-{}/drivers/thermal/mediatek:thermal_interface".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/irq_monitor:irq_monitor".format(kernel_version),
-		"//kernel_device_modules-{}/drivers/mihw:metis".format(kernel_version),
     ],
     copts = [
         "-Wall",
@@ -118,14 +117,11 @@ define_mgk_ddk_ko(
 		".",
     ],
     hdrs = glob(["**/*.h","eas/*.h","eas/vip.c","eas/flt_cal.c","eas/grp_awr.c"]),
-	header_deps = ["//kernel_device_modules-{}/drivers/mihw:mihw_metis_headers".format(kernel_version),],
 	ko_deps = [
         "//kernel_device_modules-{}/drivers/thermal/mediatek:thermal_interface".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/irq_monitor:irq_monitor".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/cache-auditor:cpuqos_v3".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/performance/powerhal_cpu_ctrl:powerhal_cpu_ctrl".format(kernel_version),
-		"//kernel_device_modules-{}/drivers/mihw:metis".format(kernel_version),
-		"//kernel_device_modules-{}/drivers/mihw:mi_sched".format(kernel_version),
 		":cpufreq_sugov_ext",
     ],
     copts = [
@@ -155,14 +151,12 @@ define_mgk_ddk_ko(
         ".",
     ],
     hdrs = glob(["core_ctl/*.h", "**/*.h"]),
-	header_deps = ["//kernel_device_modules-{}/drivers/mihw:mihw_metis_headers".format(kernel_version),],
 	ko_deps = [
 		"//kernel_device_modules-{}/drivers/thermal/mediatek:thermal_interface".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/power_throttling:mtk_cpu_power_throttling".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/sched:cpufreq_sugov_ext".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/sched:scheduler".format(kernel_version),
 		"//kernel_device_modules-{}/drivers/misc/mediatek/irq_monitor:irq_monitor".format(kernel_version),
-		"//kernel_device_modules-{}/drivers/mihw:metis".format(kernel_version),
 	],
     copts = [
         "-Wall",
