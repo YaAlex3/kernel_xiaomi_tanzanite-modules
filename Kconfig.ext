@@ -1,5 +1,16 @@
 # SPDX-License-Identifier: GPL-2.0
 
+# Board build-target switches. These are set by the project config
+# (kernel/configs/<project>.config); they must be declared here, otherwise
+# kconfig drops them and IS_ENABLED()/ifdef sees them as unset.
+config BUILD_TARGET_TANZANITE
+	bool "Build target: Xiaomi tanzanite"
+	default n
+	help
+	  Build target switch for the Xiaomi tanzanite platform.
+	  Enabled by the project config (kernel/configs/tanzanite.config) and
+	  used by display, camera, fingerprint, touch and SCP drivers.
+
 config DEVICE_MODULES_ALLOW_BUILTIN
 	bool "allow builtin drivers into kernel image"
 	help

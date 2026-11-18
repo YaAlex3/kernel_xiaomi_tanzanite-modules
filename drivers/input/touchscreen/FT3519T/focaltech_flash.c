@@ -49,6 +49,18 @@
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
+#if FTS_FW_REQUEST_SUPPORT
+/*
+ * Firmware is loaded at runtime via request_firmware() from
+ * /vendor/firmware/focaltech_ts_fw_<module_name>.bin. The .i files are only
+ * the fallback for builds that embed the image, and are not shipped in the
+ * released tree, so keep stub arrays here (never used while the request path
+ * is enabled).
+ */
+u8 fw_file[] = { 0 };
+u8 fw_file2[] = { 0 };
+u8 fw_file3[] = { 0 };
+#else
 u8 fw_file[] = {
 #include FTS_UPGRADE_FW_FILE
 };
@@ -60,6 +72,7 @@ u8 fw_file2[] = {
 u8 fw_file3[] = {
 #include FTS_UPGRADE_FW3_FILE
 };
+#endif
 
 struct upgrade_module module_list[] = {
     {FTS_MODULE_ID, FTS_MODULE_NAME, fw_file, sizeof(fw_file)},

@@ -36,9 +36,18 @@
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
+/*
+ * The FT5452J pramboot image (FT5452J_Pramboot_V4.1_20210427.i) is not part
+ * of the released tree, so pram-based flashing cannot be built. Upgrade the
+ * IC through the bootloader path instead.
+ */
+#define FTS_PRAMBOOT_I_SUPPORT 0
+
+#if FTS_PRAMBOOT_I_SUPPORT
 u8 pb_file_ft5452j[] = {
 #include "../include/pramboot/FT5452J_Pramboot_V4.1_20210427.i"
 };
+#endif
 
 static int fts_ft5452j_fwupg_get_boot_state(
     enum FW_STATUS *fw_sts)
@@ -548,10 +557,16 @@ struct upgrade_func upgrade_func_ft5452j = {
     .fwveroff = 0x010E,
     .fwcfgoff = 0x1FFB0,
     .appoff = 0x0000,
+#if FTS_PRAMBOOT_I_SUPPORT
     .pramboot_supported = true,
     .pramboot = pb_file_ft5452j,
     .pb_length = sizeof(pb_file_ft5452j),
     .write_pramboot_private = ft5452j_write_pramboot_private,
+#else
+    .pramboot_supported = false,
+    .pramboot = NULL,
+    .pb_length = 0,
+#endif
     .pram_ecc_check_mode = ECC_CHECK_MODE_CRC16,
     .new_return_value_from_ic = true,
     .hid_supported = false,
