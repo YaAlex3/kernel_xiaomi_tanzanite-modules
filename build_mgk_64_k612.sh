@@ -47,7 +47,7 @@ cp -a "${SRC}/${TARGET_DEVICE}_kernel_aarch64.user/"Image.* "${FINAL_DIST}/"
 
 cp -a "${SRC}/${TARGET_DEVICE}_merged_uapi_headers.user/"* "${FINAL_DIST}/"
 
-cp -a "${SRC}/${TARGET_DEVICE}.user/"*.dtb "${FINAL_DIST}/"
+find "${SRC}/${TARGET_DEVICE}.user/" -maxdepth 1 -name '*.dtb' -exec cp -a -t "${FINAL_DIST}/" {} +
 find "${SRC}/${TARGET_DEVICE}.user/" -name '*.ko' -exec cp -n -t "${FINAL_DIST}/" {} +
 
 echo "MGKI kernel artifacts staged in ${FINAL_DIST}"
