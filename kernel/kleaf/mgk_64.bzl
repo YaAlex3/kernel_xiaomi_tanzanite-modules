@@ -324,10 +324,10 @@ mgk_64_kleaf_user_modules = [
 mgk_64_module_outs = [
 ]
 
-mgk_64_common_modules = mgk_module_outs + mgk_64_module_outs
-mgk_64_common_eng_modules = mgk_module_outs + mgk_module_eng_outs + mgk_64_module_outs
-mgk_64_common_userdebug_modules = mgk_module_outs + mgk_module_userdebug_outs + mgk_64_module_outs
-mgk_64_common_user_modules = mgk_module_outs + mgk_module_user_outs + mgk_64_module_outs
+mgk_64_common_modules = depset(mgk_module_outs + mgk_64_module_outs).to_list()
+mgk_64_common_eng_modules = depset(mgk_module_outs + mgk_module_eng_outs + mgk_64_module_outs).to_list()
+mgk_64_common_userdebug_modules = depset(mgk_module_outs + mgk_module_userdebug_outs + mgk_64_module_outs).to_list()
+mgk_64_common_user_modules = depset(mgk_module_outs + mgk_module_user_outs + mgk_64_module_outs).to_list()
 
 mgk_64_kleaf_device_modules_srcs = [
     # keep sorted

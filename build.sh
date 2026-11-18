@@ -26,15 +26,15 @@ KLEAF_OUT=("--output_user_root=${OUT_DIR} --output_base=${OUT_DIR}/bazel/output_
 KLEAF_ARGS=("${DEBUG_ARGS} ${SANDBOX_ARGS} \
 	--experimental_writable_outputs --allow_ddk_unsafe_headers=1 --workaround_btrfs_b292212788 \
 	--//build/bazel_mgk_rules:kernel_version=${KERNEL_VERSION_NUM} \
-  --experimental_optimize_ddk_config_actions
-  --user_ddk_unsafe_headers=//${DEVICE_MODULES_DIR}:mtk_use_gki_unsafe_headers" )
+	--experimental_optimize_ddk_config_actions \
+	--user_ddk_unsafe_headers=//${DEVICE_MODULES_DIR}:mtk_use_gki_unsafe_headers" )
 
 
 set -x
 (
   tools/bazel ${KLEAF_OUT} build ${KLEAF_ARGS} ${KLEAF_BUILD_TARGET}
   tools/bazel ${KLEAF_OUT} run ${KLEAF_ARGS} \
-	--nokmi_symbol_list_violations_check ${KLEAF_DIST_TARGET} -- --dist_dir=${OUT_DIR}/dist
+	--nokmi_symbol_list_violations_check ${KLEAF_DIST_TARGET} -- --destdir=${OUT_DIR}/dist
 )
 set +x
 
