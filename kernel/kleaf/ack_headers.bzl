@@ -3642,6 +3642,7 @@ ack_headers = [
 	"//kernel-{}:drivers/rpmsg/qcom_glink_trace.h".format(kernel_version),
 	"//kernel-{}:drivers/rpmsg/rpmsg_char.h".format(kernel_version),
 	"//kernel-{}:drivers/rpmsg/rpmsg_internal.h".format(kernel_version),
+	"//kernel-{}:drivers/scsi/sd.h".format(kernel_version),
 	#"//kernel-{}:drivers/thermal/thermal.h".format(kernel_version),
 	"//kernel-{}:drivers/tty/serial/8250/8250.h".format(kernel_version),
 	"//kernel-{}:drivers/tty/serial/serial_base.h".format(kernel_version),
