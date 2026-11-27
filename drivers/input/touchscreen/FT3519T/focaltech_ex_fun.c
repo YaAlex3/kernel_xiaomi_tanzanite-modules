@@ -1337,6 +1337,8 @@ int lct_fts_tp_proximity_switch_callback(bool flag)
 {
     int rc = 0;
 
+    (void)rc;
+
     if (flag) {
         rc = fts_set_proximity_switch(1);
         FTS_INFO("fts enable proximity mode,rc = %d\n",rc);
