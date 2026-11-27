@@ -69,9 +69,9 @@ static inline int reg_loading_tracking_sp(void (*fn)(int mask_loading, int loadi
 	unsigned long polling_ms, const struct cpumask *cpu_mask, const char *caller)
 { return -EINVAL; }
 
-#define reg_loading_tracking(p_fn, polling_ms, cpu_mask) \
-reg_loading_tracking_sp(p_fn, polling_ms, cpu_mask, __func__)
-static inline int unreg_loading_tracking_sp(void (*fn)(int mask_loading, int loading,
+#define unreg_loading_tracking(p_fn) \
+unreg_loading_tracking_sp(p_fn, __func__)
+extern int unreg_loading_tracking_sp(void (*fn)(int mask_loading, int loading,
 			u64 *per_cpu_idle_time, u64 *per_cpu_wall_time),
 	const char *caller)
 { return -EINVAL; }

@@ -85,6 +85,6 @@ struct mtk_ipi_device scp_ipidev = {
 	.prdata = 0,
 	.timeout_handler = scp_plat_ipi_timeout_cb,
 };
-EXPORT_SYMBOL(scp_ipidev);
+EXPORT_SYMBOL_GPL(scp_ipidev);
 
 #endif
