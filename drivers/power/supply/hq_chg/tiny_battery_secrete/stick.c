@@ -145,15 +145,18 @@ static void *hex2asc(unsigned char *dest, unsigned char *src, unsigned int len)
 }
 static void hex_dump(const char *prefix, unsigned char *output, int output_len)
 {
+#ifndef DEBUG
+	return;
+#endif
 	char buffer[1024];
 	if (output_len == 0 || output == NULL) {
-		pr_err("%s\n", prefix);
+		pr_debug("%s\n", prefix);
 		return;
 	} else if (output_len > (sizeof(buffer) / 2))
 		output_len = (sizeof(buffer) / 2);
 	memset(buffer, 0x00, sizeof(buffer));
 	hex2asc(buffer, output, output_len << 1);
-	pr_err("%s%s\n", prefix, buffer);
+	pr_debug("%s%s\n", prefix, buffer);
 }
 static void delayn(int ns)
 {
@@ -351,7 +354,7 @@ static int stick_set_frame_start(uint8_t byteval)
 	} while ((i < IDLE) && (j < MAX_WAIT));
 
 	if (j == MAX_WAIT) {
-		pr_err("%s : ST1WIRE_ARBITRATION_LOST\n", __func__);
+		pr_err("%s : ST1WIRE_ARBITRATION_LOST", __func__);
 		return ST1WIRE_ARBITRATION_LOST;
 	}
 	raw_spin_lock_irqsave(&g_sd->auth_dev->io_lock, flags);
@@ -375,7 +378,7 @@ static int stick_send_frame(uint8_t * buf, size_t frame_length)
 		pr_err("stickerr set frame start failed in send frame\n");
 		return ret;
 	}
-	print_hex_dump(KERN_ERR, LOGTAG"<- ", DUMP_PREFIX_NONE, 16, 1, buf, frame_length, 0);
+	hex_dump("<- ", buf, frame_length);
 	/* - Send Frame content */
 	for (i = 0; i < frame_length; i++) {
 		Delay_us_sleep(SLOW_DELAY_INTER_BYTE);	//8*18= 144us
@@ -395,8 +398,9 @@ static int stick_send_frame(uint8_t * buf, size_t frame_length)
 			if (ret != ST1WIRE_OK) {
 				Delay_us_sleep(SLOW_INTERFRAME_DELAY);
 				return ST1WIRE_ACK_ERROR;
-			} else
-				pr_err("stickerr ignores invalid ack in send frame\n");
+			} else {
+				pr_debug("stickerr ignores invalid ack in send frame\n");
+			}
 		}
 	}
 	// Delay in ST1Wire slow to allow STICK Vcc to stabilize
@@ -421,7 +425,7 @@ static int stick_read_frame(uint8_t *buf, int len)
 			Delay_us_sleep(SLOW_INTERFRAME_DELAY);
 			return ST1WIRE_ACK_ERROR;
 		} else
-			pr_err("stickerr ignores invalid ack in get frame\n");
+			pr_debug("stickerr ignores invalid ack in get frame\n");
 	}
 	Delay_us_sleep(SLOW_DELAY_INTER_BYTE);
 	ret = stick_read_byte(&frame_length);
@@ -562,7 +566,7 @@ static void stick_increase_fail_cnt(void)
 		g_sd->zone9_fail_cnt++;
 		if (g_sd->zone9_fail_cnt >= STICK_FAIL_MAX_CNT) {
 			g_sd->ccsoh_zone_index = STICK_BACKUP_ZONE;
-			pr_err("stick use zone12\n");
+			pr_debug("stick use zone12\n");
 		}
 	} else if (g_sd->ccsoh_zone_index == STICK_BACKUP_ZONE) {
 		g_sd->zone12_fail_cnt++;
@@ -593,14 +597,14 @@ static int stick_read_repeated(u8 *read_buf, int len)
 			crc = crypto_Crc16(&ack_buf[0], len);
 			if ((crc == rsp_crc) && (ack_buf[0] == 0x00)) {
 				memcpy(read_buf, ack_buf, len);
-				pr_info("repeat read retry cnt:%d\n", repeat_cnt);
+				pr_debug("repeat read retry cnt:%d\n", repeat_cnt);
 				break;
 			} else {
 				ret = ST1WIRE_ACK_ERROR;
 				if (ack_buf[0] != 0x00)
-					pr_err("status byte error:%02X\n", ack_buf[0]);
+					pr_debug("status byte error:%02X\n", ack_buf[0]);
 				else
-					pr_err("receive crc error\n");
+					pr_debug("receive crc error\n");
 				repeat_cnt++;
 				if (repeat_cnt >= STICK_REPEAT_RETRY) {
 					pr_err("retry failed\n");
@@ -626,7 +630,7 @@ static int stick_read_zone(uint8_t zone, uint8_t offset, uint8_t *read_buf, uint
 	uint16_t crc = 0;
 	uint8_t cmd_buf[9];
 	int i = 0, ret = ST1WIRE_ACK_ERROR;
-	pr_err("%s enter\n", __func__);
+	pr_debug("%s enter\n", __func__);
 	if (len > 16) {
 		pr_err("stickerr invalid read length(%u)\n", len);
 		return -EINVAL;
@@ -667,13 +671,13 @@ static int stick_read_zone(uint8_t zone, uint8_t offset, uint8_t *read_buf, uint
 		}
 		// buf[0] is the status byte, always must be 0x00
 		memcpy(read_buf, &buf[1], len);
-		pr_err("read zone(%u) retry(%d)\n", zone, i);
+		pr_debug("read zone(%u) retry(%d)\n", zone, i);
 		break;
 	}
 	if (i >= STICK_RETRY_CNT) {
 		if ((zone == STICK_CYCLE_T) || (zone == STICK_BACKUP_ZONE))
 			stick_increase_fail_cnt();
-		pr_err("stickfail read zone failed\n");
+		pr_err("%s read zone failed\n", __func__);
 	} else {
 		if ((zone == STICK_CYCLE_T) || (zone == STICK_BACKUP_ZONE))
 			stick_clear_fail_cnt();
@@ -687,7 +691,7 @@ static int stick_update_zone(uint8_t zone, uint8_t offset, uint8_t *write_buf, u
 	uint8_t ack;
 	uint16_t crc = 0;
 	uint8_t cmd_buf[32];
-	pr_err("%s enter\n", __func__);
+	pr_debug("%s enter\n", __func__);
 	if (len > 16) {
 		pr_err("invalid write length(%u)\n", len);
 		return -EINVAL;
@@ -715,17 +719,17 @@ static int stick_update_zone(uint8_t zone, uint8_t offset, uint8_t *write_buf, u
 		ret = stick_send_frame(cmd_buf, len + 7);
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr send update zone frame\n");
+			pr_debug("stickerr send update zone frame\n");
 			continue;
 		}
 		msleep(30);
 		ret = stick_read_repeated(&ack, 1);
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr update zone\n");
+			pr_debug("stickerr update zone\n");
 			continue;
 		}
-		pr_err("stick update zone(%u) retry(%d)\n", zone, i);
+		pr_debug("stick update zone(%u) retry(%d)\n", zone, i);
 		break;
 	}
 	if (i >= STICK_RETRY_CNT) {
@@ -745,10 +749,10 @@ static int stick_read_dc_counter(uint32_t *counter_val)
 	uint16_t crc = 0;
 	uint8_t cmd_buf[9];
 	int i = 0, ret = ST1WIRE_ACK_ERROR;
-	pr_err("%s enter\n", __func__);
+	pr_debug("%s enter\n", __func__);
 	if (g_sd->last_counter != INIT_ERR_VALUE) {
 		*counter_val = g_sd->last_counter;
-		pr_err("use last dc counter value(%u)\n", g_sd->last_counter);
+		pr_debug("use last dc counter value(%u)\n", g_sd->last_counter);
 		return ST1WIRE_OK;
 	}
 	mutex_lock(&g_sd->mutex);
@@ -767,25 +771,27 @@ static int stick_read_dc_counter(uint32_t *counter_val)
 		ret = stick_send_frame(cmd_buf, sizeof(cmd_buf));
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr send read dc frame\n");
+			pr_debug("stickerr send read dc frame\n");
 			continue;
 		}
 		msleep(30);
 		ret = stick_read_repeated(buf, 4);
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr read dc counter\n");
+			pr_debug("stickerr read dc counter\n");
 			continue;
 		}
 		// buf[0] is the status byte, always must be 0x00
 		*counter_val = (buf[1] << 16) | (buf[2] << 8) | buf[3];
 		g_sd->last_counter = *counter_val;
-		pr_err("read dc counter retry(%d)(%u)\n", i, *counter_val);
+		pr_debug("read dc counter retry(%d)(%u)\n", i, *counter_val);
 		break;
 	}
 	if (i >= STICK_RETRY_CNT)
-		pr_err("stickfail read dc counter failed\n");
+		pr_err("%s failed", __func__);
 	mutex_unlock(&g_sd->mutex);
+
+	pr_debug("%s exit", __func__);
 	return ret;
 }
 static int stick_decrease_counter(uint32_t amount, uint32_t *counter_val)
@@ -800,7 +806,7 @@ static int stick_decrease_counter(uint32_t amount, uint32_t *counter_val)
 		ret = stick_read_dc_counter(&last_new_counter);
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr update new dc counter failed\n");
+			pr_debug("update new dc counter failed\n");
 			return -EINVAL;
 		}
 	}
@@ -814,7 +820,7 @@ static int stick_decrease_counter(uint32_t amount, uint32_t *counter_val)
 				return -EINVAL;
 			}
 			if (current_counter + amount == last_new_counter) {
-				pr_err("decrease new counter retry(%d)(%u)\n", i - 1, *counter_val);
+				pr_debug("decrease new counter retry(%d)(%u)\n", i - 1, *counter_val);
 				break;
 			}
 		}
@@ -833,37 +839,37 @@ static int stick_decrease_counter(uint32_t amount, uint32_t *counter_val)
 		ret = stick_send_frame(cmd_buf, sizeof(cmd_buf));
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr send decrease dc frame\n");
+			pr_debug("stickerr send decrease dc frame\n");
 			continue;
 		}
 		msleep(30);
 		ret = stick_read_repeated(buf, 4);
 		if (ret != ST1WIRE_OK) {
 			ret = ST1WIRE_ACK_ERROR;
-			pr_err("stickerr decrease dc counter\n");
+			pr_debug("stickerr decrease dc counter\n");
 			continue;
 		}
 		*counter_val = (buf[1] << 16) | (buf[2] << 8) | buf[3];
 		g_sd->last_counter = *counter_val;
 		ret = ST1WIRE_OK;
-		pr_err("decrease dc counter retry(%d)(%u)\n", i, *counter_val);
+		pr_debug("decrease dc counter retry(%d)(%u)\n", i, *counter_val);
 		break;
 	}
 	if (i >= STICK_RETRY_CNT)
-		pr_err("stickfail decrease dc counter failed\n");
+		pr_debug("stickfail decrease dc counter failed\n");
 	return ret;
 }
 static int stick_read_cycle(u8 *new_cycle)
 {
 	if (g_sd->last_cycle != INIT_ERR_VALUE) {
 		*new_cycle = g_sd->last_cycle;
-		pr_err("use last cycle count(%u)\n", g_sd->last_cycle);
+		pr_debug("use last cycle count(%u)\n", g_sd->last_cycle);
 		return 0;
 	} else {
 		if (stick_read_zone(g_sd->ccsoh_zone_index, 15, new_cycle, 1) == ST1WIRE_OK) {
 			g_sd->last_cycle = *new_cycle;
 			ccsoh_buf[15] = g_sd->last_cycle;
-			pr_err("use new cycle count(%u)\n", g_sd->last_cycle);
+			pr_debug("use new cycle count(%u)\n", g_sd->last_cycle);
 			return 0;
 		} else {
 			g_sd->last_cycle = INIT_ERR_VALUE;
@@ -883,14 +889,14 @@ static int stick_write_cycle(u32 new_cycle)
 		} else {
 			g_sd->last_raw_soh = raw_soh;
 			ccsoh_buf[0] = g_sd->last_raw_soh;
-			pr_err("rewrite raw soh:%u\n", g_sd->last_raw_soh);
+			pr_debug("rewrite raw soh:%u\n", g_sd->last_raw_soh);
 		}
 	}
 	cc_backup = ccsoh_buf[15];
 	ccsoh_buf[15] = cycle_count;
 	if (stick_update_zone(g_sd->ccsoh_zone_index, 0, ccsoh_buf, 16) == ST1WIRE_OK) {
 		g_sd->last_cycle = cycle_count;
-		pr_err("write cycle count(%u) succeeded\n", cycle_count);
+		pr_debug("write cycle count(%u) succeeded\n", cycle_count);
 		return 0;
 	} else {
 		ccsoh_buf[15] = cc_backup;
@@ -916,7 +922,7 @@ static int st_get_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 			break;
 		}
 
-		pr_err("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
 		retry_cnt--;
 		msleep(20);
 	}
@@ -950,9 +956,9 @@ static int st_get_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 		memset(first_usage_date, '0', len);
 	}
 
-	pr_info("%s get first_usage_date:\n", __func__);
+	pr_debug("%s get first_usage_date:\n", __func__);
 	for (i = 0; i < len; i++) {
-		pr_info("%s data[%d]:0x%x\n", __func__, i, first_usage_date[i]);
+		pr_debug("%s data[%d]:0x%x\n", __func__, i, first_usage_date[i]);
 	}
 
 	mutex_lock(&g_sd->mutex);
@@ -963,7 +969,7 @@ static int st_get_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 			break;
 		}
 
-		pr_err("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
 		exit_retry_cnt--;
 		msleep(20);
 	}
@@ -990,7 +996,7 @@ static int st_set_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 			break;
 		}
 
-		pr_err("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
 		retry_cnt--;
 		msleep(20);
 	}
@@ -1020,11 +1026,6 @@ static int st_set_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 	}
 
 
-	pr_info("%s set first_usage_date:\n", __func__);
-	for (i = 0; i < len; i++) {
-		pr_info("%s page6_data[%d]:0x%x\n", __func__, i, page6_data[i]);
-	}
-
 	mutex_lock(&g_sd->mutex);
 	while (exit_retry_cnt) {
 		ret = stick_set_hibernate(g_sd);
@@ -1033,7 +1034,7 @@ static int st_set_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 			break;
 		}
 
-		pr_err("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
 		exit_retry_cnt--;
 		msleep(20);
 	}
@@ -1043,9 +1044,8 @@ static int st_set_first_usage_date(struct auth_device *auth_dev, u8 *first_usage
 		return ret;
 	}
 
-	pr_info("%s set first_usage_date:\n", __func__);
 	for (i = 0; i < len; i++) {
-		pr_info("%s page6_data[%d]:0x%x\n", __func__, i, page6_data[i]);
+		pr_debug("%s page6_data[%d]:0x%x\n", __func__, i, page6_data[i]);
 	}
 	return 0;
 }
@@ -1065,7 +1065,7 @@ int stick_get_cycle_count(struct auth_device *auth_dev, u32 *cycle_count)
 			break;
 		}
 
-		pr_err("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
 		retry_cnt--;
 		msleep(20);
 	}
@@ -1075,13 +1075,13 @@ int stick_get_cycle_count(struct auth_device *auth_dev, u32 *cycle_count)
 		return ret;
 	}
 
-	pr_err("%s enter\n", __func__);
+	pr_debug("%s enter\n", __func__);
 	ret = stick_read_cycle(&get_count);
 	if (ret != ST1WIRE_OK) {
 		pr_err("%s read cycle count failed\n", __func__);
 		return -1;
 	}
-	pr_err("%s cycle count: %u\n", __func__, get_count);
+	pr_debug("%s cycle count: %u\n", __func__, get_count);
 	if (get_count == 0xff)
 		get_count = 0;
 	if (get_count >= 29) {
@@ -1091,13 +1091,13 @@ int stick_get_cycle_count(struct auth_device *auth_dev, u32 *cycle_count)
 			return -1;
 		}
 		*cycle_count = DC_INIT_VALUE - *cycle_count;
-		pr_err("%s cycle_count:%u\n", __func__, *cycle_count);
+		pr_debug("%s cycle_count:%u\n", __func__, *cycle_count);
 		if (*cycle_count < get_count)
 			*cycle_count = get_count;
 	} else {
 		*cycle_count = get_count;
 	}
-	pr_err("%s cycle_count:%u\n", __func__, *cycle_count);
+	pr_debug("%s cycle_count:%u\n", __func__, *cycle_count);
 
 	mutex_lock(&g_sd->mutex);
 	while (exit_retry_cnt) {
@@ -1107,7 +1107,7 @@ int stick_get_cycle_count(struct auth_device *auth_dev, u32 *cycle_count)
 			break;
 		}
 
-		pr_err("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
 		exit_retry_cnt--;
 		msleep(20);
 	}
@@ -1134,7 +1134,7 @@ int stick_set_cycle_count(struct auth_device * auth_dev, u32 set_cycle_count, u3
 			break;
 		}
 
-		pr_err("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
 		retry_cnt--;
 		msleep(20);
 	}
@@ -1144,10 +1144,10 @@ int stick_set_cycle_count(struct auth_device * auth_dev, u32 set_cycle_count, u3
 		return ret;
 	}
 	i = set_cycle_count - get_cycle;
-	pr_err("%s add_num:%d\n", __func__, i);
+	pr_debug("%s add_num:%d\n", __func__, i);
 	if (i <= 0)
 		return 0;
-	pr_err("%s set_cycle_count: %d\n", __func__, set_cycle_count);
+	pr_debug("%s set_cycle_count: %d\n", __func__, set_cycle_count);
 	if (set_cycle_count < 30) {
 		ret = stick_write_cycle(set_cycle_count);
 		if (ret != ST1WIRE_OK) {
@@ -1165,13 +1165,13 @@ int stick_set_cycle_count(struct auth_device * auth_dev, u32 set_cycle_count, u3
 			pr_err("%s read dc err\n", __func__);
 			return -1;
 		}
-		pr_err("%s cycle_count: %d\n", __func__, cycle_count);
+		pr_debug("%s cycle_count: %d\n", __func__, cycle_count);
 		get_cycle = DC_INIT_VALUE - cycle_count;
 		i = set_cycle_count - get_cycle;
 		if (i <= 0)
 			return 0;
 		ret = stick_decrease_counter(i, &counter_val);
-		pr_err("%s counter_val: %u\n", __func__, counter_val);
+		pr_debug("%s counter_val: %u\n", __func__, counter_val);
 		if (ret != ST1WIRE_OK){
 			pr_err("%s %d decrease counter decrease failed: %d\n",
 				__func__, __LINE__, ret);
@@ -1179,7 +1179,7 @@ int stick_set_cycle_count(struct auth_device * auth_dev, u32 set_cycle_count, u3
 		}
 	} else {
 		ret = stick_decrease_counter(i, &counter_val);
-		pr_err("%s counter_val: %u\n", __func__, counter_val);
+		pr_debug("%s counter_val: %u\n", __func__, counter_val);
 		if (ret != ST1WIRE_OK){
 			pr_err("%s %d decrease counter decrease failed: %d\n",
 				__func__, __LINE__, ret);
@@ -1195,7 +1195,7 @@ int stick_set_cycle_count(struct auth_device * auth_dev, u32 set_cycle_count, u3
 			break;
 		}
 
-		pr_err("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
 		exit_retry_cnt--;
 		msleep(20);
 	}
@@ -1225,7 +1225,7 @@ static int stick_get_ui_soh(struct auth_device *auth_dev, u8 *ui_soh_data, int l
 			break;
 		}
 
-		pr_err("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
 		retry_cnt--;
 		msleep(20);
 	}
@@ -1236,17 +1236,15 @@ static int stick_get_ui_soh(struct auth_device *auth_dev, u8 *ui_soh_data, int l
 	}
 
 	if (g_sd->last_ui_soh != INIT_ERR_VALUE) {
-		pr_err("use last ui soh\n");
+		pr_debug("use last ui soh\n");
 		memcpy(ui_soh_data, g_sd->ui_soh_bytes, UISOH_MAX_LEN);
-		print_hex_dump(KERN_ERR, LOGTAG"last ui soh <- ",
-			DUMP_PREFIX_NONE, 16, 1, g_sd->ui_soh_bytes, UISOH_MAX_LEN, 0);
+		hex_dump("last ui soh <- ", g_sd->ui_soh_bytes, UISOH_MAX_LEN);
 		ret = 0;
 	} else {
 		if (stick_read_zone(STICK_UI_SOH, 0, ui_soh_data, UISOH_MAX_LEN) == ST1WIRE_OK) {
 			g_sd->last_ui_soh = INIT_DONE_VALUE;
 			memcpy(g_sd->ui_soh_bytes, ui_soh_data, UISOH_MAX_LEN);
-			print_hex_dump(KERN_ERR, LOGTAG"new ui soh <- ",
-				DUMP_PREFIX_NONE, 16, 1, g_sd->ui_soh_bytes, UISOH_MAX_LEN, 0);
+			hex_dump("new ui soh <- ", g_sd->ui_soh_bytes, UISOH_MAX_LEN);
 			ret =  0;
 		} else {
 			g_sd->last_ui_soh = INIT_ERR_VALUE;
@@ -1262,7 +1260,7 @@ static int stick_get_ui_soh(struct auth_device *auth_dev, u8 *ui_soh_data, int l
 			break;
 		}
 
-		pr_err("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
 		exit_retry_cnt--;
 		msleep(20);
 	}
@@ -1293,7 +1291,7 @@ static int stick_set_ui_soh(struct auth_device *auth_dev, u8 *ui_soh_data, int l
 			break;
 		}
 
-		pr_err("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, exit hibernate error: %d\n", __func__, retry_cnt, ret);
 		retry_cnt--;
 		msleep(20);
 	}
@@ -1308,14 +1306,14 @@ static int stick_set_ui_soh(struct auth_device *auth_dev, u8 *ui_soh_data, int l
 	if (stick_update_zone(STICK_UI_SOH, 0, uisoh_buf, 16) == ST1WIRE_OK) {
 		g_sd->last_ui_soh = INIT_DONE_VALUE;
 		memcpy(g_sd->ui_soh_bytes, ui_soh_data, UISOH_MAX_LEN);
-		pr_err("update ui soh succeeded\n");
+		pr_debug("update ui soh succeeded\n");
 		if (g_sd->last_cycle == INIT_ERR_VALUE) {
 			if (stick_read_zone(g_sd->ccsoh_zone_index, 15, &old_cycle_count, 1)) {
 				pr_err("read previous cycle count failed\n");
 				ret = -1;
 			} else {
 				g_sd->last_cycle = old_cycle_count;
-				pr_err("update cyle count:%u\n", g_sd->last_cycle);
+				pr_debug("update cyle count:%u\n", g_sd->last_cycle);
 			}
 		}
 	} else {
@@ -1332,7 +1330,7 @@ static int stick_set_ui_soh(struct auth_device *auth_dev, u8 *ui_soh_data, int l
 			break;
 		}
 
-		pr_err("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
+		pr_debug("%s cnt:%d, enter hibernate error: %d\n", __func__, retry_cnt, ret);
 		exit_retry_cnt--;
 		msleep(20);
 	}
@@ -1349,19 +1347,19 @@ static int stick_set_raw_soh(struct auth_device *auth_dev, int raw_soh)
 	u8 new_raw_soh = raw_soh;
 	if (g_sd->last_cycle == INIT_ERR_VALUE) {
 		if (stick_read_zone(g_sd->ccsoh_zone_index, 15, &old_cycle_count, 1)) {
-			pr_err("read old cycle count failed\n");
+			pr_debug("read old cycle count failed\n");
 			return -1;
 		} else {
 			g_sd->last_cycle = old_cycle_count;
 			ccsoh_buf[15] = g_sd->last_cycle;
-			pr_err("rewrite cyle count:%u\n", g_sd->last_cycle);
+			pr_debug("rewrite cyle count:%u\n", g_sd->last_cycle);
 		}
 	}
 	rawsoh_backup = ccsoh_buf[0];
 	ccsoh_buf[0] = new_raw_soh;
 	if (stick_update_zone(g_sd->ccsoh_zone_index, 0, ccsoh_buf, 16) == ST1WIRE_OK) {
 		g_sd->last_raw_soh = new_raw_soh;
-		pr_err("write new raw soh(%u) succeeded\n", new_raw_soh);
+		pr_debug("write new raw soh(%u) succeeded\n", new_raw_soh);
 		return 0;
 	} else {
 		ccsoh_buf[0] = rawsoh_backup;
@@ -1376,34 +1374,34 @@ static int stick_get_raw_soh(struct auth_device *auth_dev)
 	u32 new_raw_soh = INIT_ERR_VALUE;
 	if (g_sd->last_raw_soh != INIT_ERR_VALUE) {
 		new_raw_soh = g_sd->last_raw_soh;
-		pr_err("last raw soh(%u)\n", g_sd->last_raw_soh);
+		pr_debug("last raw soh(%u)\n", g_sd->last_raw_soh);
 	} else {
 		if (stick_read_zone(g_sd->ccsoh_zone_index, 0, &raw_soh, 1) == ST1WIRE_OK) {
 			g_sd->last_raw_soh = new_raw_soh = raw_soh;
 			ccsoh_buf[0] = g_sd->last_raw_soh;
-			pr_err("read new raw soh(%u) succeeded\n", raw_soh);
+			pr_debug("read new raw soh(%u) succeeded\n", raw_soh);
 		} else {
 			g_sd->last_raw_soh = new_raw_soh = INIT_ERR_VALUE;
-			pr_err("read new raw soh failed\n");
+			pr_debug("read new raw soh failed\n");
 		}
 	}
 	if (new_raw_soh > 100 && g_sd->last_raw_soh != INIT_ERR_VALUE) {
 		if (stick_set_raw_soh(auth_dev, 100) == ST1WIRE_OK) {
 			g_sd->last_raw_soh = 100;
-			pr_err("update new raw soh to 100 succeeded\n");
+			pr_debug("update new raw soh to 100 succeeded\n");
 			return 100;
 		} else {
 			g_sd->last_raw_soh = INIT_ERR_VALUE;
-			pr_err("update new raw soh to 100 failed\n");
+			pr_debug("update new raw soh to 100 failed\n");
 			return -1;
 		}
 	} else if (new_raw_soh == INIT_ERR_VALUE) {
 		g_sd->last_raw_soh = INIT_ERR_VALUE;
-		pr_err("invalid raw soh\n");
+		pr_debug("invalid raw soh\n");
 		return -1;
 	} else {
 		g_sd->last_raw_soh = new_raw_soh;
-		pr_err("use last raw soh(%u)\n", g_sd->last_raw_soh);
+		pr_debug("use last raw soh(%u)\n", g_sd->last_raw_soh);
 		return new_raw_soh;
 	}
 }
@@ -1458,7 +1456,7 @@ static ssize_t cmdbuf_store(struct device *dev,
 	len += snprintf(txbuf, sizeof(txbuf), "tx data:");
 	for (i = 0; i < num; i++)
 		len += snprintf(txbuf + len, PAGE_SIZE, " %02lX", tx_hex[i]);
-	pr_info("%s\n", txbuf);
+	pr_debug("%s\n", txbuf);
 	for (i = 0; i < num; i++)
 		tx_hex_u8[i] = tx_hex[i];
 	crc = crypto_Crc16(&tx_hex_u8[0], num);
@@ -1479,7 +1477,7 @@ static ssize_t cmdbuf_store(struct device *dev,
 	crc = crypto_Crc16(&cmd_buffer[0], rx_len + 1);
 	if (crc == rsp_crc) {
 		cmd_len = rx_len + 3;
-		pr_err("cmdbuf_store succeed\n");
+		pr_debug("cmdbuf_store succeed\n");
 		return size;
 	} else {
 		pr_err("cmdbuf_store failed\n");
@@ -1496,7 +1494,7 @@ static int stick_platform_probe(struct platform_device *pdev)
 	struct stick_device *sd;
 	char *secret_ic_str = NULL;
 	int secret_ic = -1;
-	pr_err("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 
 
   	secret_ic_str = strstr(chg_get_cmd(), SECRET_IC);
@@ -1541,8 +1539,8 @@ static int stick_platform_probe(struct platform_device *pdev)
 	g_sd->zone9_fail_cnt = 0;
 	g_sd->zone12_fail_cnt = 0;
 	g_sd->ccsoh_zone_index = STICK_CYCLE_T;
-	pr_err("cmdline dcval:0x%x\n", dcval);
-	pr_err("cmdline ccsoh:0x%x\n", ccsoh);
+	pr_debug("cmdline dcval:0x%x\n", dcval);
+	pr_debug("cmdline ccsoh:0x%x\n", ccsoh);
 	/*if (ccsoh & (3 << 16)) { // zone9 or zone12 ok
 		g_sd->last_raw_soh = (ccsoh & 0xFF00) >> 8;
 		g_sd->last_cycle = ccsoh & 0xFF;
@@ -1567,7 +1565,7 @@ static int stick_platform_probe(struct platform_device *pdev)
 		if (ret == ST1WIRE_OK) {
 			break;
 		}
-		pr_err("%s : Error while ping with stick device, retry %d times\n", __func__, i);
+		pr_debug("%s : Error while ping with stick device, retry %d times\n", __func__, i);
 		msleep(5);
 	}
 
@@ -1585,14 +1583,14 @@ static int stick_platform_probe(struct platform_device *pdev)
 		pr_err("%s : No answer from STICK, do not create device\n",__func__);
 	}
 
-	pr_err("%s end\n", __func__);
+	pr_debug("%s end\n", __func__);
 	return 0;
 }
 static void stick_platform_remove(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct stick_device *sd;
-	pr_err("%s\n", __func__);
+	pr_debug("%s\n", __func__);
 	sd = dev_get_drvdata(dev);
 	mutex_destroy(&sd->mutex);
 	auth_device_unregister(sd->auth_dev);
