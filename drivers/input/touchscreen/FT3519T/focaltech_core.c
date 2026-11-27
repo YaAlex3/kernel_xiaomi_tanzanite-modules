@@ -203,10 +203,7 @@ int fts_proximity_readdata(struct fts_ts_data *ts_data)
 #endif
 
     if (ts_data->scp_ipidev && ts_data->mtk_ipi_send) {
-        FTS_INFO("mtk_ipi_send");
         ts_data->mtk_ipi_send(ts_data->scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
-    } else {
-        FTS_INFO("mtk_ipi_send skip");
     }
 skip_send:
 
