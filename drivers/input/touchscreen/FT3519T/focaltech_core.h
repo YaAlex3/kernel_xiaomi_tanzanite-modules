@@ -72,6 +72,7 @@
 /* O7 code for HQ-393493 by zhangkaiqiang at 2024/07/11 start */
 #include "../xiaomi/xiaomi_touch.h"
 /* O7 code for HQ-393493 by zhangkaiqiang at 2024/07/11 end */
+#include "scp_rv.h"
 
 #if LCT_TP_VIRTUAL_PSENSOR
 #include "../lct_tp/lct_tp_proximity_switch.h"
@@ -379,6 +380,10 @@ struct fts_ts_data {
 /* O7 code for HQ-393507 by zhangkaiqiang at 2024/07/28 end*/
 /* O7 code for HQ-387710 by tangyihan at 2024/10/11 start*/
     char vendor[32];
+
+    struct mtk_ipi_device *scp_ipidev;
+    int (*mtk_ipi_send)(struct mtk_ipi_device *ipidev, int ipi_id,
+                int opt, void *data, int len, int timeout);
 };
 
 extern const struct proc_ops fts_tp_selftest_ops;
@@ -432,7 +437,6 @@ enum _FTS_FW_MODE {
 * Global variable or extern global variabls/functions
 *****************************************************************************/
 extern struct fts_ts_data *fts_data;
-
 
 /* communication interface */
 int fts_read(u8 *cmd, u32 cmdlen, u8 *data, u32 datalen);

@@ -35,6 +35,7 @@
 * Included header files
 *****************************************************************************/
 #include "focaltech_core.h"
+#include "scp_rv.h"
 
 /*****************************************************************************
 * Private constant and macro definitions using #define
@@ -329,6 +330,7 @@ static void __exit fts_ts_i2c_exit(void)
 module_init(fts_ts_i2c_init);
 module_exit(fts_ts_i2c_exit);
 
+MODULE_SOFTDEP("pre: scp mtk_tinysys_ipi");
 MODULE_AUTHOR("FocalTech Driver Team");
 MODULE_DESCRIPTION("FocalTech Touchscreen Driver(I2C)");
 MODULE_LICENSE("GPL v2");

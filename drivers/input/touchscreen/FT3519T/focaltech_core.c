@@ -180,54 +180,35 @@ int fts_proximity_readdata(struct fts_ts_data *ts_data)
         return -EPERM;
 
     fts_read_reg(FTS_REG_FACE_DEC_MODE_STATUS, &regvalue);
-
-#ifdef CONFIG_FACTORY_BUILD
     if (regvalue == 0x10) {
         proximity_status = PS_NEAR;
-        FTS_DEBUG("regvalue = %x",regvalue);
-        tp_ps_data = 3; //PROX_NEAR;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
-    } else if (regvalue == 0x20) {
-        proximity_status = PS_NEAR;
-        FTS_DEBUG("regvalue = %x",regvalue);
-        tp_ps_data = 3; //PROX_NEAR;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
-    } else if (regvalue == 0x30) {
-        proximity_status = PS_NEAR;
-        FTS_DEBUG("regvalue = %x",regvalue);
-        tp_ps_data = 3; //PROX_NEAR;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
-    } else if (regvalue == 0x00) {
-        proximity_status = PS_FAR_AWAY;
-        FTS_DEBUG("regvalue = %x",regvalue);
-        //fts_release_all_finger();
-        tp_ps_data = 0;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
-    }
-#else
-    if (regvalue == 0x10) {
-        proximity_status = PS_NEAR;
-        FTS_DEBUG("regvalue = %x",regvalue);
         tp_ps_data = 1; //PROX_NEAR;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
     } else if (regvalue == 0x20) {
         proximity_status = PS_NEAR;
-        FTS_DEBUG("regvalue = %x",regvalue);
         tp_ps_data = 2; //PROX_NEAR;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
     } else if (regvalue == 0x30) {
         proximity_status = PS_NEAR;
-        FTS_DEBUG("regvalue = %x",regvalue);
         tp_ps_data = 3; //PROX_NEAR;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
     } else if (regvalue == 0x00) {
         proximity_status = PS_FAR_AWAY;
-        FTS_DEBUG("regvalue = %x",regvalue);
-        //fts_release_all_finger();
         tp_ps_data = 0;
-        mtk_ipi_send(&scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
+    } else {
+        goto skip_send;
+    }
+#ifdef CONFIG_FACTORY_BUILD
+    if (tp_ps_data > 0) {
+        proximity_status = PS_NEAR;
+        tp_ps_data = 3; //PROX_NEAR;
     }
 #endif
+
+    if (ts_data->scp_ipidev && ts_data->mtk_ipi_send) {
+        FTS_INFO("mtk_ipi_send");
+        ts_data->mtk_ipi_send(ts_data->scp_ipidev, IPI_OUT_TP_PS, 0, &tp_ps_data, 1, 0);
+    } else {
+        FTS_INFO("mtk_ipi_send skip");
+    }
+skip_send:
 
     FTS_DEBUG("fts_proximity_data.detect is %d,proximity_status = %d,regvalue = %d", fts_proximity_data.detect,proximity_status,regvalue);
 
@@ -3389,6 +3370,9 @@ int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 /* O7 code for HQ-387506 by zhangkaiqiang at 2024/7/23 start */
     fts_init_xiaomi_touchfeature(ts_data);
 /* O7 code for HQ-387506 by zhangkaiqiang at 2024/7/23 end */
+    ts_data->scp_ipidev = symbol_get(scp_ipidev);
+    ts_data->mtk_ipi_send = symbol_get(mtk_ipi_send);
+
     FTS_FUNC_EXIT();
     return 0;
 
@@ -3506,6 +3490,15 @@ int fts_ts_remove_entry(struct fts_ts_data *ts_data)
     kfree_safe(ts_data->bus_tx_buf);
     kfree_safe(ts_data->bus_rx_buf);
     kfree_safe(ts_data->pdata);
+
+    if (ts_data->scp_ipidev) {
+        symbol_put(ts_data->scp_ipidev);
+        ts_data->scp_ipidev = NULL;
+    }
+    if (ts_data->mtk_ipi_send) {
+        symbol_put(ts_data->mtk_ipi_send);
+        ts_data->mtk_ipi_send = NULL;
+    }
 
     FTS_FUNC_EXIT();
     return 0;
