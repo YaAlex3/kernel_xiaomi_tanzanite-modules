@@ -416,7 +416,7 @@ int mtk_ipi_send(struct mtk_ipi_device *ipidev, int ipi_id,
 
 	return IPI_ACTION_DONE;
 }
-EXPORT_SYMBOL(mtk_ipi_send);
+EXPORT_SYMBOL_GPL(mtk_ipi_send);
 
 int mtk_ipi_recv(struct mtk_ipi_device *ipidev, int ipi_id)
 {
