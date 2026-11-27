@@ -714,7 +714,9 @@ static long device_ioctl(struct file *filp,
 		unsigned int cmd, unsigned long arg)
 {
 	ssize_t ret = 0;
+#if IS_ENABLED(CONFIG_MTK_FPSGO_V3) || IS_ENABLED(CONFIG_MTK_FPSGO_V8)
 	int pwr_cmd = -1, value1 = -1, value2 = -1, pwr_pid = -1, pwr_fps = -1;
+#endif
 	struct _FPSGO_PACKAGE *msgKM = NULL, *msgUM = NULL;
 	struct _FPSGO_PACKAGE smsgKM;
 	struct _FPSGO_SBE_PACKAGE *msgKM_SBE = NULL, *msgUM_SBE = NULL;
